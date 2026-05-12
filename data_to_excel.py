@@ -64,6 +64,21 @@ def find_nearest_keyword(context):
                 found.append(kw)
     return "、".join(sorted(set(found))) if found else ""
 
+#预处理数值：如果范围，取平均值
+def preprocess_value(value_str):
+    if '~' in value_str or '-' in value_str or '－' in value_str or '～' in value_str:
+        parts = re.split(r'[~－～-]', value_str)
+        try:
+            nums = [float(p.strip()) for p in parts if p.strip()]
+            return sum(nums) / len(nums)
+        except ValueError:
+            return None
+    else:
+        try:
+            return float(value_str)
+        except ValueError:
+            return None
+
 #从文本中提取参数
 def extract_parameters_form_text(pdf, pages):
     records = []
@@ -86,20 +101,22 @@ def extract_parameters_form_text(pdf, pages):
             if category == "其他参数" and not param_name:
                 continue
 
+            processed_value = preprocess_value(value)
+
             records.append({
                 "pdf_name": pdf,
                 "page": page_no,
                 "category": category,
                 "parameter": param_name,
-                "value": value,
+                "value": processed_value,
                 "unit": unit,
                 "context": context
             })
 
     return records
 
-#将信息保存到excel
-def process_pdf(input_folder, output_excel):
+#将信息保存到excel和csv
+def process_pdf(input_folder, output_excel, output_csv):
     input_folder = pt(input_folder)
     all_records = []
 
@@ -124,20 +141,40 @@ def process_pdf(input_folder, output_excel):
     #去重
     df = df.drop_duplicates()
 
+    #处理缺失值：删除有缺失的行
+    df = df.dropna()
+
     summary = (
         df.groupby(["pdf_name", "category", "parameter", "unit"]).size()
         .reset_index(name="出现次数")
     )
 
+    #为模型训练准备数据：将参数作为特征，按pdf分组
+    #每个pdf一行，参数作为列
+    training_data = df.pivot_table(
+        index="pdf_name",
+        columns="parameter",
+        values="value",
+        aggfunc="mean"  # 如果有多个值，取平均
+    ).reset_index()
+
+    #填充缺失值
+    training_data = training_data.fillna(0)
+
     with pd.ExcelWriter(output_excel, engine="openpyxl") as writer:
         df.to_excel(writer, sheet_name="提取参数明细", index=False)
         summary.to_excel(writer, sheet_name="数据汇总", index=False)
+        training_data.to_excel(writer, sheet_name="训练数据", index=False)
 
-    print(f"数据已成功保存到：{output_excel}")
+    #保存CSV
+    training_data.to_csv(output_csv, index=False)
+
+    print(f"数据已成功保存到：{output_excel} 和 {output_csv}")
 
 
 #main
 if __name__ == "__main__":
     input_folder = "./pdf"
     output_excel = "extracted_parameters.xlsx"
-    process_pdf(input_folder, output_excel)
+    output_csv = "extracted_parameters.csv"
+    process_pdf(input_folder, output_excel, output_csv)
