@@ -59,13 +59,23 @@ def predict_remaining_parameters(known_params, imputer, feature_names):
 
 
 def evaluate_imputer(imputer, df):
-    """Compute a quick evaluation by masking every column once."""
+    """Compute a quick evaluation by masking every column once.
+    Only evaluates on rows where the original value is not NaN.
+    """
     errors = {}
     for col in df.columns:
+        # 只在原始值非NaN的行上评估
+        valid_mask = df[col].notna()
+        if valid_mask.sum() == 0:
+            errors[col] = float('nan')
+            continue
         df_masked = df.copy()
         df_masked[col] = np.nan
-        filled = imputer.transform(df_masked.values)
-        errors[col] = mean_squared_error(df[col].values, filled[:, df.columns.get_loc(col)])
+        filled = imputer.transform(df_masked)
+        col_idx = df.columns.get_loc(col)
+        y_true = df.loc[valid_mask, col].values
+        y_pred = filled[valid_mask.values, col_idx]
+        errors[col] = mean_squared_error(y_true, y_pred)
     return errors
 
 
@@ -90,12 +100,11 @@ if __name__ == "__main__":
     imputer, feature_names = train_imputer(df)
     save_model(imputer, feature_names, args.output)
 
-    # 示例：已知一部分参数，预测其余参数
+    # 示例：已知一部分参数，预测其余参数（使用合理范围内的值）
     sample_input = {
-        "BOD": 0.0,
-        "COD": 27.75,
-        "氨氮": 500.0,
-        "总磷": 0.0,
+        "BOD": 5.2,
+        "COD": 30.0,
+        "氨氮": 3.5,
     }
     prediction, remaining = predict_remaining_parameters(sample_input, imputer, feature_names)
     print("已知参数:")
