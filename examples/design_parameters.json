@@ -1,0 +1,14 @@
+{
+  "长": 10.0,
+  "宽": 5.0,
+  "高": 1.5,
+  "flow_type": "horizontal",
+  "compartments": 3,
+  "inlet_diameter": 0.1,
+  "water_depth": 0.8,
+  "wall_thickness": 0.15,
+  "partition_thickness": 0.1,
+  "进水量": 100.0,
+  "水力停留时间": 24.0,
+  "水力负荷": 0.3
+}

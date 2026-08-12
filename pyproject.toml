@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "constructed-wetland-designer"
+version = "0.4.0"
+description = "人工湿地论文参数抽取、模型训练和二维/三维辅助设计原型"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "GPL-3.0-or-later"}
+dependencies = [
+  "joblib>=1.2,<2",
+  "numpy>=1.23,<3",
+  "openpyxl>=3.1,<4",
+  "pandas>=1.5,<3",
+  "pdfminer.six>=20221105",
+  "Pillow>=9.5,<12",
+  "scikit-learn>=1.2,<2",
+  "scipy>=1.9,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4,<9", "ruff>=0.5,<1"]
+
+[project.scripts]
+wetland-design = "design_cli:main"
+wetland-audit = "data_audit:main"
+
+[tool.setuptools]
+py-modules = [
+  "api",
+  "build_preflight",
+  "data_audit",
+  "data_to_excel",
+  "design_3d",
+  "design_cli",
+  "generator_2d",
+  "generator_3d",
+  "model_training_saving_v2",
+  "parameter_io",
+  "parameter_schema",
+  "user_gui",
+  "version",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -5,12 +5,12 @@
 - 将各模块的常用功能以稳定函数暴露出来，避免 GUI 直接依赖实现细节。
 """
 
-import importlib
 from typing import Optional
 
 import data_to_excel
 import joblib
 import parameter_io
+import design_3d
 
 import model_training_saving_v2 as mts_v2
 
@@ -20,8 +20,7 @@ def extract_pdfs(input_folder: str, output_excel: str, output_csv: str, merge_xl
 
     返回训练数据的 DataFrame 路径（CSV 路径）。
     """
-    data_to_excel.process_pdf(input_folder, output_excel, output_csv, merge_xlsx)
-    return output_csv
+    return data_to_excel.process_pdf(input_folder, output_excel, output_csv, merge_xlsx)
 
 
 def train_imputer(csv_path: str, output_path: str, **kwargs):
@@ -44,13 +43,11 @@ def get_model_feature_names(model_path: str):
     return parameter_io.get_feature_names_from_model(model_path)
 
 
-def compute_parameters(params: dict, model_path: str) -> dict:
-    """仅计算并返回由模型填补后的完整参数集。"""
-    design_module = importlib.import_module("3d")
-    return design_module.predict_missing_parameters(params, model_path)
+def compute_parameters(params: dict, model_path: Optional[str] = None) -> dict:
+    """可选地由模型填补数值字段，并返回校验后的完整设计参数。"""
+    return design_3d.prepare_design_parameters(params, model_path)
 
 
-def generate_design(params: dict, model_path: str, output_prefix: str, mode: str = "all", openscad_path: str = "openscad"):
+def generate_design(params: dict, model_path: Optional[str], output_prefix: str, mode: str = "all", openscad_path: str = "openscad", render_timeout: int = 180):
     """统一调用 3d.generate_from_params 并返回结果字典。"""
-    design_module = importlib.import_module("3d")
-    return design_module.generate_from_params(params, model_path=model_path, output_prefix=output_prefix, mode=mode, openscad_path=openscad_path)
+    return design_3d.generate_from_params(params, model_path=model_path, output_prefix=output_prefix, mode=mode, openscad_path=openscad_path, render_timeout=render_timeout)

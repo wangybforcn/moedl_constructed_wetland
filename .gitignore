@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.joblib
+*.stl
+*.scad
+*_2d.png
+*_3d.png
+extracted_parameters.csv
+extracted_parameters.xlsx
+.pytest_cache/
+.ruff_cache/
+.venv/
+.tools/
+build/
+dist/
+*.spec.bak

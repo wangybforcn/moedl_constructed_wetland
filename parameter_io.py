@@ -5,6 +5,7 @@ import json
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import joblib
+from parameter_schema import PARAMETER_SPECS, coerce_value, validate_parameters as validate_schema
 
 
 def normalize_parameter_value(value: Any) -> Optional[Any]:
@@ -22,23 +23,16 @@ def normalize_parameter_value(value: Any) -> Optional[Any]:
 
 def normalize_parameters(raw_inputs: Dict[str, Any]) -> Dict[str, Optional[Any]]:
     """将原始输入字典中的值转换为 float/string/None。"""
-    return {key: normalize_parameter_value(value) for key, value in raw_inputs.items()}
+    result = {}
+    for key, value in raw_inputs.items():
+        try:
+            result[key] = coerce_value(key, value)
+        except (TypeError, ValueError):
+            result[key] = normalize_parameter_value(value)
+    return result
 
 
-PARAMETER_UNITS = {
-    "长": "m",
-    "宽": "m",
-    "高": "m",
-    "flow_type": "",
-    "compartments": "个",
-    "inlet_diameter": "m",
-    "water_depth": "m",
-    "wall_thickness": "m",
-    "partition_thickness": "m",
-    "进水量": "m³/d",
-    "水力停留时间": "h",
-    "水力负荷": "kg/(m²·d)",
-}
+PARAMETER_UNITS = {name: spec.unit for name, spec in PARAMETER_SPECS.items()}
 
 
 def get_feature_display_name(feature_name: str) -> str:
@@ -78,14 +72,12 @@ def get_feature_names_from_model(model_path: str) -> Optional[List[str]]:
     if isinstance(model, dict):
         if "feature_names" in model:
             return model["feature_names"]
-        if "imputer" in model and "feature_names" in model:
-            return model.get("feature_names")
+        if "input_features" in model:
+            return model["input_features"]
     return None
 
 
 def validate_parameters(params: Dict[str, Any], required_fields: Optional[Iterable[str]] = None) -> Tuple[bool, List[str]]:
     """验证必填字段是否存在并且不为 None。"""
-    if required_fields is None:
-        return True, []
-    missing = [name for name in required_fields if params.get(name) is None]
-    return len(missing) == 0, missing
+    _, errors = validate_schema(params, required_fields)
+    return len(errors) == 0, errors
